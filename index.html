@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>J.A.R.V.I.S. AI OS</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    html, body { 
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; 
+      background: #050910; 
+      color: #e2f1f8; 
+      height: 100vh; 
+      height: 100dvh;
+      overflow: hidden; 
+    }
+    
+    #root { height: 100%; display: flex; flex-direction: row; position: relative; }
+
+    /* Sci-Fi Grid Backdrop */
+    .bg-grid {
+      background-image: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    /* Screen Edge Speaking Glow */
+    body.speaking-glow::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border: 3px solid rgba(0, 240, 255, 0.6);
+      box-shadow: inset 0 0 30px rgba(0, 240, 255, 0.4), 0 0 30px rgba(0, 240, 255, 0.3);
+      pointer-events: none;
+      z-index: 999;
+      animation: pulse-edge 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-edge {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* Arc Reactor HUD */
+    .arc-reactor {
+      width: 40px;
+      height: 40px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      perspective: 600px;
+    }
+
+    .arc-ring-outer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 2px dashed #00f0ff;
+      border-radius: 50%;
+      animation: spin 12s linear infinite;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.4), inset 0 0 8px rgba(0, 240, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .arc-ring-inner {
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      border: 2px solid #ffb703;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin-reverse 6s linear infinite;
+      transition: all 0.3s ease;
+    }
+
+    .arc-core {
+      width: 45%;
+      height: 45%;
+      background: radial-gradient(circle, #ffffff 10%, #00f0ff 60%, rgba(0, 240, 255, 0.2) 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 15px #00f0ff, 0 0 25px #00f0ff;
+      animation: pulse-core 2s ease-in-out infinite;
+    }
+
+    .arc-reactor.active .arc-ring-outer {
+      animation: spin-3d-sideways 1.2s linear infinite !important;
+      border-color: #00f0ff;
+      box-shadow: 0 0 25px #00f0ff, inset 0 0 15px #00f0ff;
+    }
+
+    .arc-reactor.active .arc-ring-inner {
+      animation: spin-3d-tilt 0.8s linear infinite !important;
+      border-color: #00f0ff;
+    }
+
+    .arc-reactor.active .arc-core {
+      animation: pulse-core-fast 0.4s ease-in-out infinite !important;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+    @keyframes spin-3d-sideways { 0% { transform: rotateY(0deg) rotateZ(0deg); } 100% { transform: rotateY(360deg) rotateZ(360deg); } }
+    @keyframes spin-3d-tilt { 0% { transform: rotateX(0deg) rotateZ(360deg); } 100% { transform: rotateX(360deg) rotateZ(0deg); } }
+    @keyframes pulse-core { 0%, 100% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
+    @keyframes pulse-core-fast { 0%, 100% { transform: scale(0.85); opacity: 0.6; } 50% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 30px #00f0ff; } }
+
+    /* FIXED PINNED SIDEBAR UI */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background: rgba(8, 14, 24, 0.98);
+      border-right: 1px solid rgba(0, 240, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+      overflow: hidden;
+      white-space: nowrap;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar.collapsed { width: 60px; }
+    .sidebar.expanded { width: 260px; }
+
+    @media (max-width: 768px) {
+      .sidebar.collapsed { width: 0px; border-right: none; }
+      .sidebar.expanded { width: 280px; }
+    }
+
+    .sidebar-header {
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    }
+
+    .sidebar-btn {
+      background: transparent;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: #00f0ff;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .new-chat-btn {
+      margin: 12px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(0, 119, 182, 0.2) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00f0ff;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 11px;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+    .chat-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #8da2b5;
+      font-size: 13px;
+      border: 1px solid transparent;
+    }
+
+    .chat-item.active {
+      background: rgba(0, 240, 255, 0.1);
+      color: #fff;
+      border-color: rgba(0, 240, 255, 0.3);
+    }
+
+    /* MAIN WORKSPACE OFFSET */
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .main-workspace.collapsed { margin-left: 60px; }
+    .main-workspace.expanded { margin-left: 260px; }
+
+    @media (max-width: 768px) {
+      .main-workspace.collapsed { margin-left: 0px; }
+      .main-workspace.expanded { margin-left: 0px; }
+    }
+
+    .hud-header {
+      background: rgba(8, 14, 24, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .nav-pill {
+      background: rgba(0, 240, 255, 0.04);
+      padding: 3px;
+      border-radius: 10px;
+      display: flex;
+      gap: 2px;
+      border: 1px solid rgba(0, 240, 255, 0.12);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: #8da2b5;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active { color: #050910; background: #00f0ff; box-shadow: 0 0 12px rgba(0, 240, 255, 0.6); }
+
+    /* SIGNAL / VOICE HUD BUTTON */
+    .signal-btn {
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: #8da2b5;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+
+    .signal-btn.active {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: #00f0ff;
+      color: #00f0ff;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    }
+
+    .signal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #8da2b5;
+    }
+
+    .signal-btn.active .signal-dot {
+      background: #00f0ff;
+      box-shadow: 0 0 8px #00f0ff;
+      animation: pulse-core 1.2s ease-in-out infinite;
+    }
+
+    .btn {
+      background: rgba(14, 24, 38, 0.9);
+      color: #00f0ff;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, #00f0ff 0%, #0077b6 100%); color: #050910; font-weight: 700; border: none; }
+    .btn-danger { background: rgba(220, 38, 38, 0.2); color: #ff4d4d; border-color: rgba(220, 38, 38, 0.4); }
+
+    .input {
+      background: rgba(10, 18, 30, 0.9);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: #e2f1f8;
+      padding: 12px 14px;
+      border-radius: 10px;
+      width: 100%;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .input:focus { border-color: #00f0ff; box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
+
+    /* CHAT FOOTER FIXED FOR MOBILE VIEWPORT */
+    .chat-footer {
+      padding: 12px 16px;
+      background: rgba(8, 14, 24, 0.98);
+      border-top: 1px solid rgba(0, 240, 255, 0.15);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    /* AUTOCOMPLETE SUGGESTION BOX */
+    .search-suggestion {
+      position: absolute;
+      bottom: 75px;
+      left: 16px;
+      right: 16px;
+      background: rgba(8, 14, 24, 0.98);
+      border: 1px solid #00f0ff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+      z-index: 90;
+      animation: hudFade 0.2s ease;
+    }
+
+    .search-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid #00f0ff;
+      color: #00f0ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-family: 'Orbitron', sans-serif;
+      margin-bottom: 8px;
+    }
+
+    /* THOUGHT BOX CARD */
+    .thought-card {
+      background: rgba(0, 240, 255, 0.04);
+      border: 1px dashed rgba(0, 240, 255, 0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: #8da2b5;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .thought-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #00f0ff;
+      font-weight: 700;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    /* SOURCES LIST UI */
+    .sources-card {
+      background: rgba(8, 14, 24, 0.8);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+
+    .sources-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: #00f0ff;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .source-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .source-item:hover {
+      background: rgba(0, 240, 255, 0.2);
+      color: #fff;
+      border-color: #00f0ff;
+    }
+
+    @keyframes hudFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-animate { animation: hudFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    .chat-bubble-user { background: linear-gradient(135deg, rgba(0, 119, 182, 0.4) 0%, rgba(0, 180, 216, 0.2) 100%); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 14px 14px 2px 14px; color: #fff; }
+    .chat-bubble-model { background: rgba(12, 21, 35, 0.9); border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 14px 14px 14px 2px; color: #e2f1f8; }
+
+    .formatted-content strong { color: #00f0ff; font-weight: 700; }
+    .formatted-content em { color: #ffb703; font-style: italic; }
+    .formatted-content code { background: rgba(0, 240, 255, 0.1); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.25); border-radius: 10px; }
+  </style>
+</head>
+<body className="bg-grid">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const DEFAULT_SYSTEM = `You are J.A.R.V.I.S., a highly refined, polite, brilliant British AI butler inspired by Iron Man's assistant. Address the user with quiet respect ("sir" or by name when appropriate). Maintain a calm, composed, articulate tone with dry English sophistication. Provide top-tier engineering solutions, particularly in Roblox Studio (Luau), physics systems, dynamic mechanics, and full-stack software design. Keep responses concise when spoken aloud.`;
+
+    function renderFormattedText(text) {
+      if (!text) return null;
+      const parts = [];
+      let lastIndex = 0;
+      const regex = /(\*\*(.*?)\*\*|\*(.*?)\*|`(.*?)`)/g;
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) parts.push(text.substring(lastIndex, match.index));
+        if (match[2]) parts.push(<strong key={match.index}>{match[2]}</strong>);
+        else if (match[3]) parts.push(<em key={match.index}>{match[3]}</em>);
+        else if (match[4]) parts.push(<code key={match.index}>{match[4]}</code>);
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < text.length) parts.push(text.substring(lastIndex));
+      return parts;
+    }
+
+    function TypewriterMessage({ text, isAnimated, onComplete }) {
+      const [displayedText, setDisplayedText] = useState(isAnimated ? '' : text);
+
+      useEffect(() => {
+        if (!isAnimated) {
+          setDisplayedText(text);
+          return;
+        }
+
+        let i = 0;
+        const timer = setInterval(() => {
+          if (i < text.length) {
+            setDisplayedText(text.slice(0, i + 1));
+            i++;
+          } else {
+            clearInterval(timer);
+            if (onComplete) onComplete();
+          }
+        }, 12);
+
+        return () => clearInterval(timer);
+      }, [text, isAnimated]);
+
+      return <span className="formatted-content">{renderFormattedText(displayedText)}</span>;
+    }
+
+    function App() {
+      const [sidebarExpanded, setSidebarExpanded] = useState(false);
+      const [activeTab, setActiveTab] = useState('chat');
+      const [voiceModeActive, setVoiceModeActive] = useState(true);
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('jarvis_api_key') || '');
+      const [tavilyKey, setTavilyKey] = useState(() => localStorage.getItem('jarvis_tavily_key') || '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');
+      const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem('jarvis_elevenlabs_key') || 'sk_864a66e0d6b356c931392685ed0da38fc18ec8e32cb0354d');
+      const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('jarvis_model') || 'gemini-3.8-flash');
+      
+      const [memories, setMemories] = useState(() => {
+        const saved = localStorage.getItem('jarvis_memories');
+        return saved ? JSON.parse(saved) : ["User is a developer specializing in Roblox Luau physics, AI scripts, & custom mechanics."];
+      });
+      const [newMemory, setNewMemory] = useState('');
+
+      const [threads, setThreads] = useState(() => {
+        const saved = localStorage.getItem('jarvis_threads');
+        if (saved) return JSON.parse(saved);
+        const initId = Date.now().toString();
+        return [{ id: initId, title: 'Main Diagnostic Core', messages: [{ role: 'model', text: 'At your service, sir. J.A.R.V.I.S. talk interface online.' }] }];
+      });
+
+      const [activeThreadId, setActiveThreadId] = useState(() => {
+        return localStorage.getItem('jarvis_active_thread') || (threads[0]?.id || Date.now().toString());
+      });
+
+      const [input, setInput] = useState('');
+      const [showSearchSuggest, setShowSearchSuggest] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [isSpeaking, setIsSpeaking] = useState(false);
+      const [statusMsg, setStatusMsg] = useState('');
+
+      // TALK TAB STATES: 'idle', 'listening', 'thinking', 'speaking'
+      const [voiceState, setVoiceState] = useState('idle');
+      const [spokenTranscript, setSpokenTranscript] = useState('Tap reactor or say "Hey Jarvis"');
+
+      const chatEndRef = useRef(null);
+      const currentAudioRef = useRef(null);
+      const recognitionRef = useRef(null);
+      const activeThread = threads.find(t => t.id === activeThreadId) || threads[0];
+      const messages = activeThread ? activeThread.messages : [];
+
+      useEffect(() => localStorage.setItem('jarvis_api_key', apiKey), [apiKey]);
+      useEffect(() => localStorage.setItem('jarvis_tavily_key', tavilyKey), [tavilyKey]);
+      useEffect(() => localStorage.setItem('jarvis_elevenlabs_key', elevenLabsKey), [elevenLabsKey]);
+      useEffect(() => localStorage.setItem('jarvis_model', selectedModel), [selectedModel]);
+      useEffect(() => localStorage.setItem('jarvis_memories', JSON.stringify(memories)), [memories]);
+      useEffect(() => localStorage.setItem('jarvis_threads', JSON.stringify(threads)), [threads]);
+      useEffect(() => localStorage.setItem('jarvis_active_thread', activeThreadId), [activeThreadId]);
+
+      // Manage screen edge speaking glow
+      useEffect(() => {
+        if (isSpeaking || voiceState === 'speaking') {
+          document.body.classList.add('speaking-glow');
+        } else {
+          document.body.classList.remove('speaking-glow');
+        }
+      }, [isSpeaking, voiceState]);
+
+      /* ELEVENLABS BRITISH BUTLER VOICE ENGINE WITH INTERRUPTION SUPPORT */
+      const speakResponse = async (rawText, onComplete) => {
+        if (!voiceModeActive) {
+          if (onComplete) onComplete();
+          return;
+        }
+
+        // Interrupt current audio if playing
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current = null;
+        }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+        const smoothText = rawText
+          .replace(/```[\s\S]*?```/g, ' Code block compiled, sir. ')
+          .replace(/[`_*#>-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (!smoothText) {
+          if (onComplete) onComplete();
+          return;
+        }
+
+        const VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George
+
+        try {
+          setIsSpeaking(true);
+          setVoiceState('speaking');
+          const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'audio/mpeg',
+              'Content-Type': 'application/json',
+              'xi-api-key': elevenLabsKey || 'sk_864a66e0d6b356c931392685ed0da38fc18ec8e32cb0354d'
+            },
+            body: JSON.stringify({
+              text: smoothText,
+              model_id: 'eleven_multilingual_v2',
+              voice_settings: { stability: 0.55, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true }
+            })
+          });
+
+          if (!res.ok) throw new Error(`ElevenLabs API Error HTTP ${res.status}`);
+
+          const audioBlob = await res.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          currentAudioRef.current = audio;
+
+          audio.onended = () => {
+            setIsSpeaking(false);
+            setVoiceState('idle');
+            if (onComplete) onComplete();
+          };
+          audio.onerror = () => {
+            setIsSpeaking(false);
+            setVoiceState('idle');
+            if (onComplete) onComplete();
+          };
+          audio.play();
+
+        } catch (err) {
+          console.warn("ElevenLabs TTS failed, using browser fallback:", err);
+          if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(smoothText);
+            utterance.rate = 1.0;
+            utterance.pitch = 0.9;
+            const voices = window.speechSynthesis.getVoices();
+            const preferred = voices.find(v => v.lang === 'en-GB' || v.name.includes('George') || v.name.includes('UK')) || voices[0];
+            if (preferred) utterance.voice = preferred;
+            utterance.onstart = () => { setIsSpeaking(true); setVoiceState('speaking'); };
+            utterance.onend = () => { setIsSpeaking(false); setVoiceState('idle'); if (onComplete) onComplete(); };
+            window.speechSynthesis.speak(utterance);
+          } else {
+            setIsSpeaking(false);
+            setVoiceState('idle');
+            if (onComplete) onComplete();
+          }
+        }
+      };
+
+      // INTERRUPT / STOP SPEECH
+      const stopSpeaking = () => {
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current = null;
+        }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        setVoiceState('idle');
+      };
+
+      /* SPEECH RECOGNITION & "HEY JARVIS" WAKE WORD LOOP */
+      useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US'; // Auto detects spoken language
+
+        recognition.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          const spoken = (finalTranscript || interimTranscript).toLowerCase();
+          if (spoken) setSpokenTranscript(spoken);
+
+          // Wake word check
+          if (spoken.includes('hey jarvis') && voiceState === 'idle') {
+            stopSpeaking();
+            setVoiceState('listening');
+            setSpokenTranscript('Listening for your command, sir...');
+          } else if (finalTranscript && voiceState === 'listening') {
+            handleVoiceCommand(finalTranscript);
+          }
+        };
+
+        recognition.onerror = (e) => {
+          console.warn("Speech recognition error:", e.error);
+        };
+
+        recognition.onend = () => {
+          // Restart recognition loop for continuous wake-word listening
+          if (voiceModeActive && recognitionRef.current) {
+            try { recognitionRef.current.start(); } catch(err) {}
+          }
+        };
+
+        recognitionRef.current = recognition;
+        try { recognition.start(); } catch(e) {}
+
+        return () => {
+          if (recognitionRef.current) recognitionRef.current.stop();
+        };
+      }, [voiceState, voiceModeActive]);
+
+      // PROCESS SPOKEN COMMAND
+      const handleVoiceCommand = async (commandText) => {
+        if (!apiKey || !commandText.trim()) return;
+        setVoiceState('thinking');
+        setSpokenTranscript(`Processing: "${commandText}"`);
+
+        const autoSearchNeeded = shouldSearchWebAutonomous(commandText);
+        let searchContext = "";
+        let sourcesList = [];
+
+        if (autoSearchNeeded) {
+          try {
+            const tavilyRes = await fetch("https://api.tavily.com/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                api_key: tavilyKey || "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",
+                query: commandText,
+                include_answer: true,
+                max_results: 3
+              })
+            });
+            const tavilyData = await tavilyRes.json();
+            if (tavilyRes.ok && tavilyData.results) {
+              sourcesList = tavilyData.results.map(r => ({ title: r.title, url: r.url }));
+              const snippets = tavilyData.results.map(r => `- [${r.title}](${r.url}): ${r.content}`).join('\n');
+              searchContext = `\n\n[Live Web Search Intelligence via Tavily API]:\nTavily Direct Answer: ${tavilyData.answer || 'None'}\nWeb Sources:\n${snippets}\n`;
+            }
+          } catch(err) {}
+        }
+
+        const memoryContext = memories.length ? `\n\n[System Neural Context Memory]:\n- ` + memories.join('\n- ') : '';
+        let systemInstruction = DEFAULT_SYSTEM + memoryContext;
+        if (autoSearchNeeded) systemInstruction += `\n\n[Web Search Directive]: Incorporate web search intelligence into your brief spoken response, sir.`;
+
+        const fullPrompt = autoSearchNeeded ? `${commandText}\n${searchContext}` : commandText;
+        const newHistory = [...messages, { role: 'user', text: commandText, isWebSearch: autoSearchNeeded }];
+
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemInstruction }] },
+              contents: newHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }))
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            let reply = data.candidates[0].content.parts[0].text;
+            
+            updateActiveThreadMessages([...newHistory, { role: 'model', text: reply, sources: sourcesList, isNew: true, isWebSearch: autoSearchNeeded }]);
+            setSpokenTranscript(reply);
+
+            // Speak response aloud, return to idle when done
+            speakResponse(reply, () => {
+              setVoiceState('idle');
+              setSpokenTranscript('Tap reactor or say "Hey Jarvis"');
+            });
+          } else {
+            setVoiceState('idle');
+            setSpokenTranscript('System error processing voice command.');
+          }
+        } catch(err) {
+          setVoiceState('idle');
+          setSpokenTranscript('Network connection error.');
+        }
+      };
+
+      const toggleTalkReactor = () => {
+        if (voiceState === 'speaking' || isSpeaking) {
+          stopSpeaking();
+          setVoiceState('idle');
+          setSpokenTranscript('Audio interrupted, sir.');
+        } else if (voiceState === 'idle') {
+          setVoiceState('listening');
+          setSpokenTranscript('Listening for your command, sir...');
+        } else {
+          setVoiceState('idle');
+          setSpokenTranscript('Tap reactor or say "Hey Jarvis"');
+        }
+      };
+
+      const toggleVoiceMode = () => {
+        if (isSpeaking) stopSpeaking();
+        setVoiceModeActive(!voiceModeActive);
+      };
+
+      const handleInputChange = (e) => {
+        const val = e.target.value;
+        setInput(val);
+        if (val.includes('@') && !val.includes('@search')) {
+          setShowSearchSuggest(true);
+        } else {
+          setShowSearchSuggest(false);
+        }
+      };
+
+      const autocompleteSearch = () => {
+        if (input.includes('@')) {
+          setInput(input.replace(/@\w*/g, '@search '));
+        } else {
+          setInput('@search ' + input);
+        }
+        setShowSearchSuggest(false);
+      };
+
+      const handleKeyDown = (e) => {
+        if (showSearchSuggest && (e.key === 'Tab' || e.key === 'Enter')) {
+          e.preventDefault();
+          autocompleteSearch();
+          return;
+        }
+        if (e.key === 'Enter' && !showSearchSuggest) {
+          sendMessage();
+        }
+      };
+
+      const createNewThread = () => {
+        const newId = Date.now().toString();
+        const newThread = { id: newId, title: 'New Task Thread', messages: [{ role: 'model', text: 'Standing by for your instructions, sir.' }] };
+        setThreads([newThread, ...threads]);
+        setActiveThreadId(newId);
+        setActiveTab('chat');
+        if (window.innerWidth <= 768) setSidebarExpanded(false);
+      };
+
+      const deleteThread = (id, e) => {
+        e.stopPropagation();
+        if (threads.length === 1) return;
+        const updated = threads.filter(t => t.id !== id);
+        setThreads(updated);
+        if (activeThreadId === id) setActiveThreadId(updated[0].id);
+      };
+
+      const updateActiveThreadMessages = (newMsgs, firstPromptText) => {
+        setThreads(threads.map(t => {
+          if (t.id === activeThreadId) {
+            let title = t.title;
+            if (firstPromptText && (t.title === 'New Task Thread' || t.title.startsWith('Thread '))) {
+              title = firstPromptText.replace(/@deep search|@search/gi, '').trim();
+              title = title.length > 25 ? title.slice(0, 25) + '...' : title;
+            }
+            return { ...t, title: title || 'Task Thread', messages: newMsgs };
+          }
+          return t;
+        }));
+      };
+
+      const addMemory = () => {
+        if (!newMemory.trim()) return;
+        setMemories([...memories, newMemory.trim()]);
+        setNewMemory('');
+      };
+
+      const removeMemory = (index) => {
+        setMemories(memories.filter((_, i) => i !== index));
+      };
+
+      const shouldSearchWebAutonomous = (query) => {
+        const q = query.toLowerCase();
+        if (q.includes('@search') || q.includes('@deep search')) return true;
+        const timeSensitive = ['latest', 'news', 'price', 'today', 'release', 'update', 'who is', 'what is', 'current', 'version', 'weather', 'movie'];
+        return timeSensitive.some(k => q.includes(k));
+      };
+
+      const sendMessage = async () => {
+        if (!input.trim() || loading) return;
+        if (!apiKey) {
+          setActiveTab('settings');
+          setStatusMsg('API key required to proceed, sir.');
+          return;
+        }
+
+        const autoSearchNeeded = shouldSearchWebAutonomous(input);
+        const cleanPrompt = input.replace(/@deep search|@search/gi, '').trim();
+        
+        const userMsg = { role: 'user', text: cleanPrompt, isWebSearch: autoSearchNeeded };
+        const newHistory = [...messages, userMsg];
+        
+        updateActiveThreadMessages(newHistory, cleanPrompt);
+        setInput('');
+        setShowSearchSuggest(false);
+        setLoading(true);
+
+        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+        let searchContext = "";
+        let sourcesList = [];
+
+        if (autoSearchNeeded) {
+          try {
+            const tavilyRes = await fetch("https://api.tavily.com/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                api_key: tavilyKey || "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",
+                query: cleanPrompt,
+                include_answer: true,
+                max_results: 4
+              })
+            });
+            const tavilyData = await tavilyRes.json();
+            if (tavilyRes.ok && tavilyData.results) {
+              sourcesList = tavilyData.results.map(r => ({ title: r.title, url: r.url }));
+              const snippets = tavilyData.results.map(r => `- [${r.title}](${r.url}): ${r.content}`).join('\n');
+              searchContext = `\n\n[Live Web Search Intelligence via Tavily API]:\nTavily Direct Answer: ${tavilyData.answer || 'None'}\nWeb Sources:\n${snippets}\n`;
+            }
+          } catch(err) {}
+        }
+
+        const thoughtProtocol = `1. RECEIVE QUESTION: "${cleanPrompt}"
+2. THINK: Evaluating parameters with due care, sir.
+3. VERIFY: ${autoSearchNeeded ? `Cross-referenced live intelligence via Tavily API (${sourcesList.length} sources examined).` : 'Verified against internal engineering archives.'}
+4. GENERATE: Composing response & streaming ElevenLabs HD audio.`;
+
+        const memoryContext = memories.length ? `\n\n[System Neural Context Memory]:\n- ` + memories.join('\n- ') : '';
+        let systemInstruction = DEFAULT_SYSTEM + memoryContext;
+        if (autoSearchNeeded) systemInstruction += `\n\n[Web Search Directive]: Incorporate search facts accurately into your butler-style response, sir.`;
+
+        const fullPromptWithSearch = autoSearchNeeded ? `${cleanPrompt}\n${searchContext}` : cleanPrompt;
+        const historyForGemini = [...messages, { role: 'user', text: fullPromptWithSearch }];
+
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemInstruction }] },
+              contents: historyForGemini.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }))
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            let reply = data.candidates[0].content.parts[0].text;
+            speakResponse(reply);
+
+            updateActiveThreadMessages([...newHistory, { 
+              role: 'model', 
+              text: reply, 
+              thought: thoughtProtocol, 
+              sources: sourcesList, 
+              isNew: true, 
+              isWebSearch: autoSearchNeeded 
+            }]);
+          } else {
+            updateActiveThreadMessages([...newHistory, { role: 'model', text: `System Error: ${data.error?.message || 'Unable to process query.'}` }]);
+          }
+        } catch(err) {
+          updateActiveThreadMessages([...newHistory, { role: 'model', text: `Network Error: ${err.message}` }]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const sendToSandbox = (text) => {
+        const match = text.match(/```(?:html|js|javascript|css)?\n([\s\S]*?)```/i);
+        setSandboxCode(match && match[1] ? match[1] : text);
+        setActiveTab('sandbox');
+      };
+
+      const loadLuauPreset = (type) => {
+        let code = '';
+        if (type === 'pathfinding') {
+          code = `-- Roblox Server AI Pathfinding Script\nlocal PathfindingService = game:GetService("PathfindingService")\nlocal monster = script.Parent\nlocal humanoid = monster:WaitForChild("Humanoid")\n\nlocal function chaseTarget(targetPart)\n    local path = PathfindingService:CreatePath({AgentRadius = 3, AgentHeight = 6, AgentCanJump = true})\n    path:ComputeAsync(monster.PrimaryPart.Position, targetPart.Position)\n    if path.Status == Enum.PathStatus.Success then\n        for _, waypoint in ipairs(path:GetWaypoints()) do\n            humanoid:MoveTo(waypoint.Position)\n            humanoid.MoveToFinished:Wait()\n        end\n    end\nend`;
+        } else if (type === 'raycast') {
+          code = `-- Fast Luau Raycasting & Physics Detection\nlocal Workspace = game:GetService("Workspace")\nlocal result = Workspace:Raycast(script.Parent.Position, Vector3.new(0, -20, 0))\nif result then print("Hit distance:", result.Distance) end`;
+        } else if (type === 'rope') {
+          code = `-- 3D Bendable Cylinder Rope Physics Engine\nlocal RunService = game:GetService("RunService")\nRunService.Heartbeat:Connect(function(dt)\n    -- Rope segment physics\nend)`;
+        }
+        setCodeSnippet(code);
+      };
+
+      return (
+        <React.Fragment>
+          {/* Pinned Fixed Sidebar */}
+          <aside className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="sidebar-header">
+              <button className="sidebar-btn" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</button>
+              {sidebarExpanded && <span style={{ fontWeight: '700', fontSize: '11px', fontFamily: 'Orbitron, sans-serif', color: '#00f0ff' }}>CORE THREADS</span>}
+            </div>
+
+            <button className="new-chat-btn" onClick={createNewThread}>
+              <span>+</span>
+              {sidebarExpanded && <span>NEW CORE THREAD</span>}
+            </button>
+
+            <div className="chat-list">
+              {threads.map(t => (
+                <div 
+                  key={t.id} 
+                  className={`chat-item ${t.id === activeThreadId ? 'active' : ''}`}
+                  onClick={() => { setActiveThreadId(t.id); setActiveTab('chat'); if(window.innerWidth <= 768) setSidebarExpanded(false); }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                    <span style={{ color: '#00f0ff', fontSize: '11px' }}>◈</span>
+                    {sidebarExpanded && <span style={{ textOverflow: 'ellipsis', overflow: 'hidden' }}>{t.title}</span>}
+                  </div>
+                  {sidebarExpanded && threads.length > 1 && (
+                    <span style={{ fontSize: '12px', opacity: 0.6 }} onClick={(e) => deleteThread(t.id, e)}>✕</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* Main Workspace Offset */}
+          <div className={`main-workspace ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+            
+            {/* Header */}
+            <header className="hud-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button className="sidebar-btn" style={{ display: window.innerWidth <= 768 ? 'flex' : 'none' }} onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</button>
+                <div className={`arc-reactor ${loading || isSpeaking || voiceState === 'speaking' ? 'active' : ''}`}>
+                  <div className="arc-ring-outer"></div>
+                  <div className="arc-ring-inner"></div>
+                  <div className="arc-core"></div>
+                </div>
+                <div>
+                  <h1 style={{ fontSize: '13px', fontWeight: '900', fontFamily: 'Orbitron, sans-serif', color: '#fff' }}>
+                    J.A.R.V.I.S. <span style={{ color: '#00f0ff', fontSize: '10px' }}>v3.8</span>
+                  </h1>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <nav className="nav-pill">
+                  <button className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`} onClick={() => setActiveTab('chat')}>CHAT</button>
+                  <button className={`tab-btn ${activeTab === 'talk' ? 'active' : ''}`} onClick={() => setActiveTab('talk')}>TALK</button>
+                  <button className={`tab-btn ${activeTab === 'coding' ? 'active' : ''}`} onClick={() => setActiveTab('coding')}>CODE</button>
+                  <button className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`} onClick={() => setActiveTab('memory')}>MEM</button>
+                  <button className={`tab-btn ${activeTab === 'sandbox' ? 'active' : ''}`} onClick={() => setActiveTab('sandbox')}>SAND</button>
+                  <button className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>CFG</button>
+                </nav>
+
+                <button className={`signal-btn ${voiceModeActive ? 'active' : ''}`} onClick={toggleVoiceMode} title="Toggle Voice">
+                  <div className="signal-dot"></div>
+                  <span>{voiceModeActive ? '📡' : '🔇'}</span>
+                </button>
+              </div>
+            </header>
+
+            <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              
+              {/* CHAT TAB */}
+              {activeTab === 'chat' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {messages.map((m, idx) => (
+                      <div key={idx} className="msg-animate" style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                        
+                        {m.role === 'model' && m.thought && (
+                          <div className="thought-card">
+                            <div className="thought-header">🧠 THOUGHT PROTOCOL</div>
+                            <div style={{ whiteSpace: 'pre-line' }}>{m.thought}</div>
+                          </div>
+                        )}
+
+                        {m.isWebSearch && (
+                          <div className="search-badge">🌐 WEB SEARCH PROTOCOL ACTIVE</div>
+                        )}
+
+                        <div className={m.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'} style={{ padding: '12px 16px', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                          {m.role === 'model' && idx === messages.length - 1 && m.isNew ? (
+                            <TypewriterMessage text={m.text} isAnimated={true} onComplete={() => {}} />
+                          ) : (
+                            <span className="formatted-content">{renderFormattedText(m.text)}</span>
+                          )}
+                        </div>
+
+                        {m.role === 'model' && m.sources && m.sources.length > 0 && (
+                          <div className="sources-card">
+                            <div className="sources-title">🌐 Sources:</div>
+                            <div>
+                              {m.sources.map((src, sIdx) => (
+                                <a key={sIdx} href={src.url} target="_blank" rel="noreferrer" className="source-item">🔗 {src.title || src.url}</a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {m.role === 'model' && (m.text.includes('```') || m.text.includes('html')) && (
+                          <button className="btn" style={{ fontSize: '11px', padding: '5px 10px', marginTop: '6px', borderRadius: '6px', background: 'rgba(0, 240, 255, 0.1)', color: '#00f0ff' }} onClick={() => sendToSandbox(m.text)}>
+                            ⚡ Execute in Sandbox
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {loading && (
+                      <div className="msg-animate" style={{ color: '#00f0ff', fontSize: '11px', fontFamily: 'Orbitron, sans-serif' }}>
+                        J.A.R.V.I.S. EXECUTING THOUGHT PROTOCOL & PREPARING RESPONSE...
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {showSearchSuggest && (
+                    <div className="search-suggestion" onClick={autocompleteSearch}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00f0ff', fontSize: '13px' }}>
+                        <span>🌐</span> <strong>@search</strong> — Force Tavily Web Search Protocol
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>[TAB] or [ENTER]</span>
+                    </div>
+                  )}
+
+                  <footer className="chat-footer">
+                    <input 
+                      className="input" 
+                      placeholder="Prompt J.A.R.V.I.S... (Auto-decides search)..." 
+                      value={input} 
+                      onChange={handleInputChange} 
+                      onKeyDown={handleKeyDown}
+                    />
+                    <button className="btn btn-primary" onClick={sendMessage} disabled={loading}>SEND</button>
+                  </footer>
+                </div>
+              )}
+
+              {/* TALK TAB (IMMERSIVE VOICE MODE) */}
+              {activeTab === 'talk' && (
+                <div className="msg-animate" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', textAlign: 'center', height: '100%' }}>
+                  <div style={{ marginBottom: '20px', fontFamily: 'Orbitron, sans-serif', color: '#00f0ff', fontSize: '12px', letterSpacing: '2px' }}>
+                    STATE: {voiceState.toUpperCase()}
+                  </div>
+
+                  {/* GIANT SPINNING ARC REACTOR IN MIDDLE */}
+                  <div 
+                    onClick={toggleTalkReactor}
+                    style={{ 
+                      width: '160px', height: '160px', borderRadius: '50%', background: 'rgba(0, 240, 255, 0.05)', 
+                      border: '2px solid rgba(0, 240, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      cursor: 'pointer', boxShadow: '0 0 40px rgba(0, 240, 255, 0.2)', position: 'relative', marginBottom: '30px' 
+                    }}
+                  >
+                    <div className={`arc-reactor ${voiceState === 'listening' || voiceState === 'speaking' || voiceState === 'thinking' ? 'active' : ''}`} style={{ width: '100px', height: '100px' }}>
+                      <div className="arc-ring-outer"></div>
+                      <div className="arc-ring-inner"></div>
+                      <div className="arc-core"></div>
+                    </div>
+                  </div>
+
+                  <div style={{ maxWidth: '400px', background: 'rgba(12, 21, 35, 0.8)', border: '1px solid rgba(0, 240, 255, 0.2)', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '11px', fontFamily: 'Orbitron, sans-serif', color: '#00f0ff', marginBottom: '6px' }}>LIVE TRANSCRIPT / STATUS</div>
+                    <div style={{ fontSize: '14px', color: '#e2f1f8', fontStyle: 'italic' }}>"{spokenTranscript}"</div>
+                  </div>
+
+                  <div style={{ fontSize: '11px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>
+                    Say <strong style={{ color: '#00f0ff' }}>"Hey Jarvis"</strong> or tap reactor to toggle listening. Click while speaking to interrupt.
+                  </div>
+                </div>
+              )}
+
+              {/* CODING UI TAB */}
+              {activeTab === 'coding' && (
+                <div className="msg-animate" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '14px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', overflowX: 'auto' }}>
+                    <button className="btn" style={{ fontSize: '11px', padding: '6px 12px' }} onClick={() => loadLuauPreset('pathfinding')}>+ Pathfinding AI</button>
+                    <button className="btn" style={{ fontSize: '11px', padding: '6px 12px' }} onClick={() => loadLuauPreset('raycast')}>+ Fast Raycast</button>
+                    <button className="btn" style={{ fontSize: '11px', padding: '6px 12px' }} onClick={() => loadLuauPreset('rope')}>+ Cylinder Rope</button>
+                    <button className="btn btn-primary" style={{ fontSize: '11px', padding: '6px 12px' }} onClick={() => { setInput(`Please review, optimize, and complete this Luau script, sir:\n\`\`\`luau\n${codeSnippet}\n\`\`\``); setActiveTab('chat'); }}>Ask Jarvis</button>
+                  </div>
+                  <textarea 
+                    className="input"
+                    style={{ flex: 1, fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', lineHeight: '1.5', background: '#050910', border: '1px solid rgba(0, 240, 255, 0.3)', resize: 'none', padding: '16px' }}
+                    value={codeSnippet}
+                    onChange={e => setCodeSnippet(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* MEMORY TAB */}
+              {activeTab === 'memory' && (
+                <div className="msg-animate" style={{ padding: '20px', overflowY: 'auto', flex: 1, maxWidth: '750px', margin: '0 auto', width: '100%' }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: '700', fontFamily: 'Orbitron, sans-serif', color: '#00f0ff', marginBottom: '8px' }}>NEURAL MEMORY MATRIX</h2>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                    <input className="input" placeholder="e.g. Always write server-validated Luau scripts" value={newMemory} onChange={e => setNewMemory(e.target.value)} />
+                    <button className="btn btn-primary" onClick={addMemory}>RECORD</button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {memories.map((mem, idx) => (
+                      <div key={idx} style={{ background: 'rgba(12, 21, 35, 0.9)', border: '1px solid rgba(0, 240, 255, 0.15)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '13px' }}>{mem}</span>
+                        <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => removeMemory(idx)}>ERASE</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SANDBOX TAB */}
+              {activeTab === 'sandbox' && (
+                <div className="msg-animate" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'row' }}>
+                    <textarea 
+                      className="input" 
+                      style={{ flex: 1, borderRadius: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', border: 'none', borderRight: '1px solid rgba(0, 240, 255, 0.15)', resize: 'none', background: '#050910', padding: '12px' }}
+                      value={sandboxCode}
+                      onChange={e => setSandboxCode(e.target.value)}
+                    />
+                    <iframe title="sandbox" srcDoc={sandboxCode} style={{ flex: 1, border: 'none', background: '#050910' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* SETTINGS TAB */}
+              {activeTab === 'settings' && (
+                <div className="msg-animate" style={{ padding: '20px', overflowY: 'auto', flex: 1, maxWidth: '500px', margin: '0 auto', width: '100%' }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: '700', fontFamily: 'Orbitron, sans-serif', color: '#00f0ff', marginBottom: '16px' }}>SYSTEM HARDWARE CONFIG</h2>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', marginBottom: '6px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>GEMINI API KEY</label>
+                    <input className="input" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="AIzaSy..." />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', marginBottom: '6px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>TAVILY SEARCH API KEY</label>
+                    <input className="input" type="password" value={tavilyKey} onChange={e => setTavilyKey(e.target.value)} placeholder="tvly-dev-..." />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', marginBottom: '6px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>ELEVENLABS API KEY</label>
+                    <input className="input" type="password" value={elevenLabsKey} onChange={e => setElevenLabsKey(e.target.value)} placeholder="sk_..." />
+                  </div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', marginBottom: '6px', color: '#8da2b5', fontFamily: 'Orbitron, sans-serif' }}>MODEL CORE PIPELINE</label>
+                    <select className="input" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+                      <option value="gemini-3.8-flash">gemini-3.8-flash (Recommended)</option>
+                      <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+                      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+            </main>
+          </div>
+        </React.Fragment>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
